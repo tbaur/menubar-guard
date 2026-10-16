@@ -87,35 +87,52 @@ private func tapCallback(
     return Unmanaged.passUnretained(event)
 }
 
+private func makeTapPort() -> CFMachPort? {
+    let mask = POSITIONAL_EVENTS.reduce(CGEventMask(0)) { $0 | (CGEventMask(1) << $1.rawValue) }
+    return CGEvent.tapCreate(
+        tap: .cghidEventTap,
+        place: .headInsertEventTap,
+        options: .defaultTap,
+        eventsOfInterest: mask,
+        callback: tapCallback,
+        userInfo: nil
+    )
+}
+
+/// True when macOS would allow the event tap right now. WindowServer checks
+/// the permission on each call, so this sees a new grant that this process's
+/// Accessibility check may not.
+func canCreateEventTap() -> Bool {
+    guard let port = makeTapPort() else { return false }
+    CFMachPortInvalidate(port)
+    return true
+}
+
 /// The HID event tap. It starts switched off, and the monitor switches it on
 /// only while there are bands to enforce, so pointer events skip this process
 /// the rest of the time.
 @MainActor
 final class EventTap {
     private let port: CFMachPort
+    /// How often this program switched the tap off itself. macOS reports each
+    /// of those to the callback as a user-input disable.
+    private(set) var selfDisables: Int
 
-    private init(port: CFMachPort) {
+    private init(port: CFMachPort, selfDisables: Int) {
         self.port = port
+        self.selfDisables = selfDisables
     }
 
     /// Creates the tap and starts its thread, or returns nil when macOS refuses.
     static func create() -> EventTap? {
-        let mask = POSITIONAL_EVENTS.reduce(CGEventMask(0)) { $0 | (CGEventMask(1) << $1.rawValue) }
-        guard let port = CGEvent.tapCreate(
-            tap: .cghidEventTap,
-            place: .headInsertEventTap,
-            options: .defaultTap,
-            eventsOfInterest: mask,
-            callback: tapCallback,
-            userInfo: nil
-        ) else { return nil }
+        guard let port = makeTapPort() else { return nil }
         CGEvent.tapEnable(tap: port, enable: false)
         guard let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, port, 0) else {
             CFMachPortInvalidate(port)
             return nil
         }
         TapThread(source: source).startAndWait()
-        return EventTap(port: port)
+        return EventTap(port: port, selfDisables: 1)
     }
 
     var isValid: Bool { CFMachPortIsValid(port) }
@@ -123,9 +140,11 @@ final class EventTap {
     var isEnabled: Bool { CGEvent.tapIsEnabled(tap: port) }
 
     func setEnabled(_ isOn: Bool) {
-        if isEnabled != isOn {
-            CGEvent.tapEnable(tap: port, enable: isOn)
+        guard isEnabled != isOn else { return }
+        if !isOn {
+            selfDisables += 1
         }
+        CGEvent.tapEnable(tap: port, enable: isOn)
     }
 }
 

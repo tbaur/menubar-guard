@@ -5,7 +5,10 @@ private let VERSION = "0.1.0"
 private let POLL_SECONDS: TimeInterval = 0.5
 private let POLL_TOLERANCE_SECONDS: TimeInterval = 0.1
 private let RELEASE_AFTER_MISSES = 3
-private let TRUST_POLL_SECONDS: TimeInterval = 2
+private let TRUST_POLL_SECONDS: TimeInterval = 1
+// Set across an in-place restart, so a copy that still cannot use the
+// permission exits instead of restarting again.
+private let RESTARTED_ENV = "MENUBAR_GUARD_RESTARTED"
 private let DISPLAY_CHANGE_TIMEOUT_SECONDS = 5.0
 // macOS switches a tap off when its callback is too slow. If that keeps
 // happening, the program exits rather than slow the pointer down.
@@ -17,7 +20,7 @@ private enum ExitCode: Int32 {
     case cannotStart = 1
     case badOptions = 2
     case tapFailed = 3
-    case permissionRestored = 4
+    case restartForPermission = 4
 }
 
 private let USAGE = """
@@ -41,7 +44,8 @@ Access on macOS 27) for the program that starts it. Only one copy runs at a
 time; a second copy waits until the first one exits.
 
 Exit codes: 0 stopped or done, 1 could not start, 2 bad options,
-3 event tap failed, 4 permission given back (start again for a new tap).
+3 event tap failed, 4 permission arrived but an in-place restart was not
+possible (start again).
 """
 
 private let TIMESTAMP_STYLE = Date.ISO8601FormatStyle()
@@ -157,8 +161,7 @@ private final class Monitor {
         guard isNowTrusted != isTrusted else { return }
         isTrusted = isNowTrusted
         if isNowTrusted {
-            log("accessibility=granted; exiting so that a new event tap is created")
-            stop(.permissionRestored)
+            restartInPlace(reason: "accessibility=granted again")
         }
         log("accessibility=revoked")
     }
@@ -169,10 +172,10 @@ private final class Monitor {
             logError("event tap is no longer valid; exiting")
             stop(.tapFailed)
         }
-        let report = health.check(tapDisables.get(), at: uptime())
+        let report = health.check(tapDisables.get(), selfDisables: tap.selfDisables, at: uptime())
         if report.isChanged {
             let totals = health.totals
-            log("tap was switched off by macOS; totals timeout=\(totals.byTimeout) user-input=\(totals.byUserInput)")
+            log("tap was switched off from outside; totals timeout=\(totals.byTimeout) user-input=\(totals.byUserInput)")
         }
         if report.newUserInputs > 0 && !hold.bands.isEmpty {
             isTapHeldOff = true
@@ -209,13 +212,43 @@ private func printCheck(options: Options) {
     print("would block when in front: \(bands.map { describe($0) }.joined(separator: ", ")) margin=\(describe(margin: options.margin))")
 }
 
+/// Replaces this process with a fresh copy of the program: same pid, same
+/// arguments. launchd sees no exit, so its 30-second restart delay does not
+/// apply. Falls back to exiting when exec fails or was already tried.
+private func restartInPlace(reason: String) -> Never {
+    activeBands.set([])
+    guard getenv(RESTARTED_ENV) == nil, let path = Bundle.main.executablePath else {
+        log("\(reason); exiting so that launchd starts a fresh copy")
+        stop(.restartForPermission)
+    }
+    log("\(reason); restarting in place")
+    for number in [SIGINT, SIGTERM, SIGHUP] {
+        signal(number, SIG_DFL)
+    }
+    setenv(RESTARTED_ENV, "1", 1)
+    fflush(stdout)
+    var argv: [UnsafeMutablePointer<CChar>?] = CommandLine.arguments.map { strdup($0) } + [nil]
+    execv(path, &argv)
+    logError("could not restart in place: \(String(cString: strerror(errno))); exiting")
+    stop(.restartForPermission)
+}
+
+/// Returns once the permission is there. A process that started without it
+/// does not see the grant through the Accessibility check, so when only the
+/// event tap shows the grant, the program restarts in place.
 private func waitForAccessibility() {
     if requestAccessibility() { return }
     log("waiting for permission in System Settings > Privacy & Security > Device Control and Data Access (Accessibility)")
-    while !isAccessibilityTrusted() {
+    while true {
         Thread.sleep(forTimeInterval: TRUST_POLL_SECONDS)
+        if isAccessibilityTrusted() {
+            log("accessibility=granted")
+            return
+        }
+        if canCreateEventTap() {
+            restartInPlace(reason: "accessibility=granted")
+        }
     }
-    log("accessibility=granted")
 }
 
 private var signalSources: [DispatchSourceSignal] = []
@@ -282,6 +315,7 @@ private func run(options: Options) -> Never {
         logError("could not create the event tap; check the permission for this program")
         stop(.cannotStart)
     }
+    unsetenv(RESTARTED_ENV)
     stopOnSignals()
     let monitor = Monitor(options: options, tap: tap)
     observeSystem(monitor)

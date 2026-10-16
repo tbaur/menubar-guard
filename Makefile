@@ -10,6 +10,7 @@ AGENT = $(HOME)/Library/LaunchAgents/$(LABEL).plist
 LOG = $(HOME)/Library/Logs/$(BIN).log
 DOMAIN = gui/$$(id -u)
 BOOTSTRAP_TRIES := 5
+UNLOAD = @if launchctl print $(DOMAIN)/$(LABEL) >/dev/null 2>&1; then launchctl bootout $(DOMAIN)/$(LABEL); fi
 
 BUILD := .build
 PLATFORM := Sources/Platform.swift Sources/main.swift
@@ -24,7 +25,7 @@ help:
 	@echo "make build       compile $(BUILD)/$(BIN)"
 	@echo "make test        compile and run the unit tests"
 	@echo "make check       print what the program sees right now (needs the permission for your terminal)"
-	@echo "make install     test, build, copy to PREFIX, load the login agent"
+	@echo "make install     test, build, copy to PREFIX, load the login agent, wait for the permission"
 	@echo "make uninstall   unload the login agent and remove the installed files"
 	@echo "make stop        unload the login agent until the next install or login"
 	@echo "make status      show the login agent state and recent log lines"
@@ -69,19 +70,20 @@ install: settings test build
 		launchd/$(BIN).plist.in > $(BUILD)/agent.plist
 	plutil -lint $(BUILD)/agent.plist
 	install -d "$(PREFIX)" "$(dir $(AGENT))" "$(dir $(LOG))"
-	-launchctl bootout $(DOMAIN)/$(LABEL) 2>/dev/null
+	$(UNLOAD)
 	install -m 755 $(BUILD)/$(BIN) "$(PREFIX)/$(BIN)"
 	install -m 644 $(BUILD)/agent.plist "$(AGENT)"
-	@for try in $$(seq $(BOOTSTRAP_TRIES)); do \
-		launchctl bootstrap $(DOMAIN) "$(AGENT)" 2>/dev/null && exit 0; \
+	@first_line=$$(( $$(cat "$(LOG)" 2>/dev/null | wc -l) + 1 )); \
+	is_loaded=; \
+	for try in $$(seq $(BOOTSTRAP_TRIES)); do \
+		if launchctl bootstrap $(DOMAIN) "$(AGENT)" 2>/dev/null; then is_loaded=1; break; fi; \
 		sleep 1; \
 	done; \
-	launchctl bootstrap $(DOMAIN) "$(AGENT)"
-	@echo "Allow $(PREFIX)/$(BIN) under Privacy & Security > Device Control and Data Access."
-	@echo "Then: make status"
+	[ -n "$$is_loaded" ] || launchctl bootstrap $(DOMAIN) "$(AGENT)" || exit 1; \
+	sh scripts/await-permission.sh "$(DOMAIN)/$(LABEL)" "$(LOG)" "$(PREFIX)/$(BIN)" "$$first_line"
 
 uninstall: settings
-	-launchctl bootout $(DOMAIN)/$(LABEL) 2>/dev/null
+	$(UNLOAD)
 	rm -f "$(AGENT)" "$(PREFIX)/$(BIN)"
 
 stop: settings

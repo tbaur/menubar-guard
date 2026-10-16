@@ -17,11 +17,9 @@ While Apple's Screen Sharing app is in front and full screen, menubar-guard keep
 make install
 ```
 
-This checks the settings, runs the tests, builds the program, and starts it as a login agent for your account. It needs no `sudo`. Then:
+This checks the settings, runs the tests, builds the program, and starts it as a login agent for your account. It needs no `sudo`.
 
-1. Open System Settings > Privacy & Security > Device Control and Data Access.
-2. Turn on `menubar-guard` (at `~/local/bin/menubar-guard`). If it is not listed, click `+` and add that file.
-3. Run `make status`. You should see `state = running` and a `started` line.
+If the agent does not have the permission yet, `make install` opens System Settings and waits. Turn on `menubar-guard` (at `~/local/bin/menubar-guard`) under Privacy & Security > Device Control and Data Access, then type `yes`. The install restarts the agent and confirms that it is running. A rebuilt binary usually needs the permission again, because the build is signed ad hoc.
 
 It installs three files: the program in `~/local/bin/`, the login agent in `~/Library/LaunchAgents/local.menubar-guard.plist`, and the log in `~/Library/Logs/menubar-guard.log`.
 
@@ -41,7 +39,7 @@ The program needs the Accessibility permission, which macOS 27 lists under Devic
 
 macOS gives the permission to whatever starts the program. For the login agent, that is the installed binary. When you run it from Terminal, including `make check`, that is Terminal. The login agent does not need Terminal's grant.
 
-The build is signed ad hoc, so after a rebuild macOS may ask again. If the log shows it waiting for permission, turn it off and on again in the settings list.
+If the agent is ever left waiting for the permission, it notices the grant within a second or two and restarts itself in place. If it keeps waiting, turn it off and on again in the settings list, then run `make restart`.
 
 ## Usage
 
@@ -94,7 +92,7 @@ make build    # .build/menubar-guard
 make clean
 ```
 
-The pure logic lives in `Sources/Geometry.swift`, `State.swift`, `Options.swift` and `Describe.swift`, and `Tests/main.swift` tests it without XCTest. `Sources/Platform.swift` holds the macOS calls, and `Sources/main.swift` holds the monitor loop and the command line. [docs/how-it-works.md](docs/how-it-works.md) explains the design and each safeguard.
+The pure logic lives in `Sources/Geometry.swift`, `State.swift`, `Options.swift` and `Describe.swift`, and `Tests/main.swift` tests it without XCTest. `Sources/Platform.swift` holds the macOS calls, and `Sources/main.swift` holds the monitor loop and the command line. `scripts/await-permission.sh` is the permission step of `make install`. [docs/how-it-works.md](docs/how-it-works.md) explains the design and each safeguard.
 
 ## License
 

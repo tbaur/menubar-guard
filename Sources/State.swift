@@ -82,19 +82,27 @@ struct TapReport: Equatable, Sendable {
 
 /// Turns running totals of tap disables into per-check news, and trips when
 /// timeouts come too often.
+///
+/// macOS reports the program's own `tapEnable(false)` calls as user-input
+/// disables, so those are subtracted. The callback may report one of them
+/// after the check that follows it, so the outside count never goes down.
 struct TapHealth: Sendable {
     private var wire: TripWire
+    /// Timeouts, and user-input disables that did not come from this program.
     private(set) var totals = TapDisables()
 
     init(timeoutLimit: Int, window: Double) {
         wire = TripWire(limit: timeoutLimit, window: window)
     }
 
-    mutating func check(_ current: TapDisables, at now: Double) -> TapReport {
+    /// `current` holds the callback's raw counts. `selfDisables` is how often
+    /// the program switched the tap off itself.
+    mutating func check(_ current: TapDisables, selfDisables: Int, at now: Double) -> TapReport {
+        let outsideUserInputs = max(totals.byUserInput, current.byUserInput - selfDisables)
         var report = TapReport()
         report.newTimeouts = max(0, current.byTimeout - totals.byTimeout)
-        report.newUserInputs = max(0, current.byUserInput - totals.byUserInput)
-        totals = current
+        report.newUserInputs = outsideUserInputs - totals.byUserInput
+        totals = TapDisables(byTimeout: max(totals.byTimeout, current.byTimeout), byUserInput: outsideUserInputs)
         report.isTripped = wire.record(report.newTimeouts, at: now)
         return report
     }

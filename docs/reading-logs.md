@@ -27,18 +27,22 @@ Window entries look like `1600x1000@0,0:full`: width, height, position, then `fu
 
 | Log line | Meaning |
 |---|---|
-| `waiting for permission in System Settings > …` | The program has no permission yet and checks again every 2 seconds. It logs `accessibility=granted` once the permission arrives. |
+| `waiting for permission in System Settings > …` | The program has no permission yet and checks again every second. |
+| `accessibility=granted; restarting in place` | The permission arrived while the program was waiting. A process that started without the permission does not see it, so the program replaces itself with a fresh copy, keeping the same pid. launchd sees no exit, so there is no restart delay. A `started` line follows. |
+| `accessibility=granted; exiting so that launchd starts a fresh copy` (or `granted again; …`) | The in-place restart was already tried, or could not run. The program exits with code 4 and launchd starts it again, at most 30 seconds after the last start. |
+| `accessibility=granted` | The permission arrived and this process can use it, so it carries on without a restart. |
 | `another copy is running; waiting for it to exit` | A second copy is waiting on the lock. |
 | `accessibility=revoked`, `state=off accessibility=revoked` | The permission was removed. The guard is off. |
-| `accessibility=granted; exiting so that a new event tap is created` | The permission came back. The program exits with code 4 and launchd starts it again. |
+| `accessibility=granted again; restarting in place` | The permission came back after it was removed. The program replaces itself with a fresh copy, which creates a new event tap. |
+| `error: could not restart in place: …; exiting` | The in-place restart failed. The program exits with code 4 instead. |
 
 ## Event tap
 
 | Log line | Meaning |
 |---|---|
-| `tap was switched off by macOS; totals timeout=… user-input=…` | macOS paused the event tap. After a timeout, the program turns it back on at once. |
+| `tap was switched off from outside; totals timeout=… user-input=…` | Something other than this program switched the tap off. After a timeout, the program turns it back on at once. The program's own switch-offs are not counted, even though macOS reports them as user input. |
 | `tap was off; turned it back on` | A regular check found the tap off while the guard was on, and turned it back on. |
-| `tap stays off until the guard next turns on, because it was switched off by user input` | macOS reported that the user asked for taps to be switched off. The program respects that until the guard next turns on. |
+| `tap stays off until the guard next turns on, because it was switched off by user input` | Something outside this program switched the tap off while the guard was on. The program respects that until the guard next turns on. |
 
 ## Errors
 
@@ -59,6 +63,6 @@ Window entries look like `1600x1000@0,0:full`: width, height, position, then `fu
 | 1 | Could not start: the lock file could not be used, or the event tap could not be created. |
 | 2 | Bad command-line options. |
 | 3 | The event tap failed: it timed out 3 times in 60 seconds, or it became invalid. |
-| 4 | The permission was removed and then given back. Start the program again to get a new tap. |
+| 4 | The permission arrived while the program was running, and the in-place restart could not be used. Start the program again so that it can use the permission. launchd does this on its own. |
 
 While the login agent is loaded, launchd starts the program again after any exit, at most once every 30 seconds. `make stop` and `make uninstall` unload it, so it stays stopped.

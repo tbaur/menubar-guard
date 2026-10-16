@@ -185,20 +185,28 @@ do {
 // Tap health.
 do {
     var health = TapHealth(timeoutLimit: 3, window: 60)
-    check(health.check(TapDisables(), at: 0) == TapReport(), "no disables reports nothing")
+    check(health.check(TapDisables(), selfDisables: 0, at: 0) == TapReport(), "no disables reports nothing")
 
-    let first = health.check(TapDisables(byTimeout: 1, byUserInput: 0), at: 1)
+    let first = health.check(TapDisables(byTimeout: 1, byUserInput: 0), selfDisables: 0, at: 1)
     check(first.newTimeouts == 1 && first.isChanged && !first.isTripped, "one timeout is reported")
 
-    let user = health.check(TapDisables(byTimeout: 1, byUserInput: 1), at: 2)
-    check(user.newUserInputs == 1 && user.newTimeouts == 0, "user-input disable is reported on its own")
+    let user = health.check(TapDisables(byTimeout: 1, byUserInput: 1), selfDisables: 0, at: 2)
+    check(user.newUserInputs == 1 && user.newTimeouts == 0, "outside user-input disable is reported on its own")
 
-    let same = health.check(TapDisables(byTimeout: 1, byUserInput: 1), at: 3)
+    let same = health.check(TapDisables(byTimeout: 1, byUserInput: 1), selfDisables: 0, at: 3)
     check(!same.isChanged, "unchanged totals report nothing new")
 
-    let tripped = health.check(TapDisables(byTimeout: 3, byUserInput: 1), at: 4)
+    let tripped = health.check(TapDisables(byTimeout: 3, byUserInput: 1), selfDisables: 0, at: 4)
     check(tripped.newTimeouts == 2 && tripped.isTripped, "third timeout in a minute trips")
     check(health.totals == TapDisables(byTimeout: 3, byUserInput: 1), "totals follow the latest counts")
+
+    var own = TapHealth(timeoutLimit: 3, window: 60)
+    check(!own.check(TapDisables(byTimeout: 0, byUserInput: 1), selfDisables: 1, at: 0).isChanged, "the program's own disable is not reported")
+    check(!own.check(TapDisables(byTimeout: 0, byUserInput: 1), selfDisables: 2, at: 1).isChanged, "own disable not yet seen by the callback is not reported")
+    check(!own.check(TapDisables(byTimeout: 0, byUserInput: 2), selfDisables: 2, at: 2).isChanged, "own disable seen late is not reported")
+    let outside = own.check(TapDisables(byTimeout: 0, byUserInput: 3), selfDisables: 2, at: 3)
+    check(outside.newUserInputs == 1, "a disable beyond the program's own is reported")
+    check(own.totals.byUserInput == 1, "totals count only outside disables")
 }
 
 // Reasons to stay off.
