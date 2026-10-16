@@ -18,6 +18,11 @@ STARTED='started version='
 WAITING='waiting for permission'
 REPORT_SECONDS=10
 SETTINGS_URL='x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility'
+# The build is signed ad hoc, so macOS ties the grant to one build. An entry
+# left from an earlier build stays in the list but no longer matches.
+REBUILD_HINT="If menubar-guard is already in the list from an earlier build, select it, remove
+it with the - button, then add $BINARY again with +.
+Switching the old entry off and on does not work for a new build."
 
 new_lines() {
     tail -n "+$FIRST_LINE" "$LOG" 2>/dev/null || true
@@ -54,6 +59,7 @@ echo ""
 echo "menubar-guard needs the permission. In System Settings > Privacy & Security >"
 echo "Device Control and Data Access, turn on:"
 echo "    $BINARY"
+echo "$REBUILD_HINT"
 
 if [ ! -t 0 ]; then
     echo "The agent picks up the permission on its own within a few seconds. Then: make status"
@@ -89,5 +95,7 @@ if wait_for "$STARTED|$WAITING" && has_started; then
     exit 0
 fi
 
-echo "menubar-guard still has no permission. Check that it is turned on, then run: make restart"
+echo "menubar-guard still has no permission."
+echo "$REBUILD_HINT"
+echo "Then run: make restart"
 exit 1

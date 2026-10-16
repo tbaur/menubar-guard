@@ -27,7 +27,7 @@ Window entries look like `1600x1000@0,0:full`: width, height, position, then `fu
 
 | Log line | Meaning |
 |---|---|
-| `waiting for permission in System Settings > …` | The program has no permission yet and checks again every second. |
+| `waiting for permission in System Settings > …` | The program has no permission yet and checks again every second. If its switch is already on, the entry is from an earlier build: remove it and add the binary again (see the README's Install section). |
 | `accessibility=granted; restarting in place` | The permission arrived while the program was waiting. A process that started without the permission does not see it, so the program replaces itself with a fresh copy, keeping the same pid. launchd sees no exit, so there is no restart delay. A `started` line follows. |
 | `accessibility=granted; exiting so that launchd starts a fresh copy` (or `granted again; …`) | The in-place restart was already tried, or could not run. The program exits with code 4 and launchd starts it again, at most 30 seconds after the last start. |
 | `accessibility=granted` | The permission arrived and this process can use it, so it carries on without a restart. |
