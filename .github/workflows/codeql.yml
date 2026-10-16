@@ -1,10 +1,13 @@
 name: CodeQL
 
+# The Swift scan takes minutes because CodeQL extracts AppKit and its SDK dependencies, so skip it when only docs change.
 on:
   push:
     branches: [ main ]
+    paths: [ "Sources/**", "Makefile", ".github/workflows/**" ]
   pull_request:
     branches: [ main ]
+    paths: [ "Sources/**", "Makefile", ".github/workflows/**" ]
   schedule:
     - cron: "23 7 * * 1"
   workflow_dispatch:
