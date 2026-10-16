@@ -1,18 +1,21 @@
 name: CodeQL
 
+# Changes reach main only through pull requests, so the PR scan covers each change
+# and the weekly scan keeps the results for main current.
 on:
-  push:
-    branches: [ main ]
-    paths: [ ".github/workflows/**" ]
   pull_request:
     branches: [ main ]
-    paths: [ ".github/workflows/**" ]
+    paths: [ "Sources/**", "Makefile", ".github/workflows/**" ]
   schedule:
     - cron: "23 7 * * 1"
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   workflows:
@@ -34,9 +37,10 @@ jobs:
           category: "/language:actions"
 
   # CodeQL extracts AppKit and its SDK dependencies on every Swift scan, which takes about ten minutes.
+  # Release PRs only change the version string, so they skip it.
   swift:
     name: Analyze (swift)
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: ${{ !startsWith(github.head_ref, 'release-please--') }}
     runs-on: macos-latest
     timeout-minutes: 30
     permissions:
