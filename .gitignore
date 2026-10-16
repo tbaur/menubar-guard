@@ -1,0 +1,10 @@
+# build output
+.build/
+
+# editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
