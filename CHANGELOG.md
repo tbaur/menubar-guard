@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Pick up the permission within a second or two, without a manual restart: when it arrives while waiting, restart in place through `exec`, so launchd's restart delay does not apply.
 - GitHub Actions CI on macOS for tests, build, command-line and install-setting checks, and the login agent lint, plus `shellcheck` on Ubuntu. CodeQL scans the workflows when they change, and the Swift code weekly or on demand with a `make build`. Dependabot keeps the actions current.
 - `make agent` builds and lints the login agent file without installing it.
+- Releases through release-please. See `RELEASING.md`.
 - `make install` waits for the permission when it is missing: it opens System Settings, asks you to type `yes` once it is on, then restarts the agent and confirms that it is running.
 - Bound every Accessibility read with a 0.25 second timeout.
 - Run only one copy at a time.

@@ -1,7 +1,7 @@
 import AppKit
 import Foundation
 
-private let VERSION = "0.1.0"
+private let VERSION = "0.1.0" // x-release-please-version
 private let POLL_SECONDS: TimeInterval = 0.5
 private let POLL_TOLERANCE_SECONDS: TimeInterval = 0.1
 private let RELEASE_AFTER_MISSES = 3

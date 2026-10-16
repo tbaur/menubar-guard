@@ -90,7 +90,7 @@ uninstall: settings
 	rm -f "$(AGENT)" "$(PREFIX)/$(BIN)"
 
 stop: settings
-	launchctl bootout $(DOMAIN)/$(LABEL)
+	$(UNLOAD)
 
 status: settings
 	@if launchctl print $(DOMAIN)/$(LABEL) >/dev/null 2>&1; then \

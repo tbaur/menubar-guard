@@ -82,6 +82,8 @@ Only one copy runs at a time. A second copy waits until the first one exits.
 
 **I want to turn it off for a while.** Run `make stop`, and `make install` to bring it back.
 
+**With Shift held, the menu bar comes down black and empty.** Run `make stop` and try again. If the bar is still black, macOS is causing it, not this program. Logging out and back in clears it.
+
 ## Limitations
 
 - It knows only Apple's Screen Sharing app.
@@ -100,6 +102,8 @@ make clean
 ```
 
 CI runs the tests, the build, command-line and install-setting checks, the login agent lint, and `shellcheck` on every push and pull request to `main`. CodeQL scans the workflows whenever one changes. It scans the Swift code once a week, or when you start the CodeQL workflow by hand from the Actions tab. That scan takes about ten minutes because CodeQL also extracts AppKit and the SDK modules that it depends on.
+
+Changes reach `main` through pull requests with Conventional Commit titles, and release-please turns them into releases. See [RELEASING.md](RELEASING.md).
 
 The pure logic lives in `Sources/Geometry.swift`, `State.swift`, `Options.swift` and `Describe.swift`, and `Tests/main.swift` tests it without XCTest. `Sources/Platform.swift` holds the macOS calls, and `Sources/main.swift` holds the monitor loop and the command line. `scripts/await-permission.sh` is the permission step of `make install`. [docs/how-it-works.md](docs/how-it-works.md) explains the design and each safeguard.
 
