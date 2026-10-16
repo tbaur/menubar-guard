@@ -17,7 +17,7 @@ PLATFORM := Sources/Platform.swift Sources/main.swift
 CORE := $(filter-out $(PLATFORM),$(wildcard Sources/*.swift))
 SWIFTFLAGS := -O -swift-version 6 -warnings-as-errors
 
-.PHONY: all build test check settings install uninstall stop status logs rotate-log restart clean help
+.PHONY: all build test check settings agent install uninstall stop status logs rotate-log restart clean help
 
 all: test build
 
@@ -25,6 +25,7 @@ help:
 	@echo "make build       compile $(BUILD)/$(BIN)"
 	@echo "make test        compile and run the unit tests"
 	@echo "make check       print what the program sees right now (needs the permission for your terminal)"
+	@echo "make agent       build and lint the login agent file in $(BUILD)/ without installing it"
 	@echo "make install     test, build, copy to PREFIX, load the login agent, wait for the permission"
 	@echo "make uninstall   unload the login agent and remove the installed files"
 	@echo "make stop        unload the login agent until the next install or login"
@@ -64,11 +65,13 @@ settings:
 	@printf '%s\n' '$(LABEL)' | LC_ALL=C grep -Eq '^[A-Za-z0-9._-]+$$' \
 		|| { echo "error: LABEL '$(LABEL)' may contain only letters, digits and . _ -" >&2; exit 2; }
 
-install: settings test build
+agent: settings build
 	./$(BUILD)/$(BIN) --margin '$(MARGIN)' --version >/dev/null
 	sed -e 's|@BIN@|$(PREFIX)/$(BIN)|' -e 's|@LABEL@|$(LABEL)|' -e 's|@LOG@|$(LOG)|' -e 's|@MARGIN@|$(MARGIN)|' \
 		launchd/$(BIN).plist.in > $(BUILD)/agent.plist
 	plutil -lint $(BUILD)/agent.plist
+
+install: settings test agent
 	install -d "$(PREFIX)" "$(dir $(AGENT))" "$(dir $(LOG))"
 	$(UNLOAD)
 	install -m 755 $(BUILD)/$(BIN) "$(PREFIX)/$(BIN)"

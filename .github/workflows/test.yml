@@ -1,0 +1,71 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: macos-latest
+    timeout-minutes: 15
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v7
+
+    - name: Show toolchain
+      run: |
+        sw_vers
+        swift --version
+
+    - name: Run unit tests
+      run: make test
+
+    - name: Build
+      run: make build
+
+    - name: Check the command line
+      run: |
+        ./.build/menubar-guard --version
+        ./.build/menubar-guard --help
+        if ./.build/menubar-guard --margin 0x10 2>/dev/null; then
+          echo "a hex margin should be rejected" >&2
+          exit 1
+        fi
+
+    - name: Build and lint the login agent file
+      run: make agent
+
+    - name: Reject unsafe install settings
+      run: |
+        for prefix in '/tmp/my bin' 'relative/bin' '/tmp/a&b'; do
+          if make settings PREFIX="$prefix" 2>/dev/null; then
+            echo "PREFIX '$prefix' should be rejected" >&2
+            exit 1
+          fi
+        done
+        if make settings LABEL='a/b' 2>/dev/null; then
+          echo "LABEL 'a/b' should be rejected" >&2
+          exit 1
+        fi
+
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v7
+
+    - name: Shellcheck
+      run: shellcheck scripts/*.sh
