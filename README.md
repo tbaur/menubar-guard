@@ -1,6 +1,7 @@
 # menubar-guard
 
 [![Tests](https://github.com/tbaur/menubar-guard/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/tbaur/menubar-guard/actions/workflows/test.yml?query=branch%3Amain)
+[![CodeQL](https://github.com/tbaur/menubar-guard/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/tbaur/menubar-guard/actions/workflows/codeql.yml?query=branch%3Amain)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![macOS](https://img.shields.io/badge/macOS-27-black.svg?logo=apple)](https://www.apple.com/macos/)
 [![Swift](https://img.shields.io/badge/swift-6-orange.svg?logo=swift)](https://www.swift.org)
@@ -98,7 +99,7 @@ make agent    # build and lint the login agent file without installing it
 make clean
 ```
 
-CI runs the tests, the build, command-line and install-setting checks, the login agent lint, and `shellcheck` on every push and pull request to `main`.
+CI runs the tests, the build, command-line and install-setting checks, the login agent lint, and `shellcheck` on every push and pull request to `main`. CodeQL scans the Swift code and the workflows on the same triggers and once a week.
 
 The pure logic lives in `Sources/Geometry.swift`, `State.swift`, `Options.swift` and `Describe.swift`, and `Tests/main.swift` tests it without XCTest. `Sources/Platform.swift` holds the macOS calls, and `Sources/main.swift` holds the monitor loop and the command line. `scripts/await-permission.sh` is the permission step of `make install`. [docs/how-it-works.md](docs/how-it-works.md) explains the design and each safeguard.
 
