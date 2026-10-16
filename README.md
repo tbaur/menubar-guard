@@ -25,7 +25,9 @@ make install
 
 This checks the settings, runs the tests, builds the program, and starts it as a login agent for your account. It needs no `sudo`.
 
-If the agent does not have the permission yet, `make install` opens System Settings and waits. Turn on `menubar-guard` (at `~/local/bin/menubar-guard`) under Privacy & Security > Device Control and Data Access, then type `yes`. The install restarts the agent and confirms that it is running. A rebuilt binary usually needs the permission again, because the build is signed ad hoc.
+If the agent does not have the permission yet, `make install` opens System Settings and waits. Turn on `menubar-guard` (at `~/local/bin/menubar-guard`) under Privacy & Security > Device Control and Data Access, then type `yes`. The install restarts the agent and confirms that it is running.
+
+Every new build needs the permission again, including each upgrade. The build is signed ad hoc, so macOS ties the permission to one exact build. The old entry stays in the list but no longer matches, and switching it off and on does not help. Select it, remove it with the **–** button, then add `~/local/bin/menubar-guard` again with **+**. In the file dialog, press Cmd-Shift-G to type the path.
 
 It installs three files: the program in `~/local/bin/`, the login agent in `~/Library/LaunchAgents/local.menubar-guard.plist`, and the log in `~/Library/Logs/menubar-guard.log`.
 
@@ -45,7 +47,7 @@ The program needs the Accessibility permission, which macOS 27 lists under Devic
 
 macOS gives the permission to whatever starts the program. For the login agent, that is the installed binary. When you run it from Terminal, including `make check`, that is Terminal. The login agent does not need Terminal's grant.
 
-If the agent is ever left waiting for the permission, it notices the grant within a second or two and restarts itself in place. If it keeps waiting, turn it off and on again in the settings list, then run `make restart`.
+If the agent is ever left waiting for the permission, it notices the grant within a second or two and restarts itself in place. If it keeps waiting even though the switch is on, the entry is probably from an earlier build. Remove it with **–**, add the binary again with **+**, then run `make restart`.
 
 ## Usage
 
