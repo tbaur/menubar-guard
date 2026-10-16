@@ -101,7 +101,7 @@ make agent    # build and lint the login agent file without installing it
 make clean
 ```
 
-CI runs the tests, the build, command-line and install-setting checks, the login agent lint, and `shellcheck` on every push and pull request to `main`. CodeQL scans the Swift code and the workflows on pull requests that change `Sources/`, the `Makefile` or a workflow, and once a week. The Swift scan takes about ten minutes because CodeQL also extracts AppKit and the SDK modules that it depends on. It is not a required check, so it never holds up a merge.
+CI runs the tests, the build, command-line and install-setting checks, the login agent lint, and `shellcheck` on every push and pull request to `main`. CodeQL scans the Swift code and the workflows on pull requests that change `Sources/`, the `Makefile` or a workflow, on `main` after those merge, and once a week. The Swift scan takes about ten minutes because CodeQL also extracts AppKit and the SDK modules that it depends on. It is not a required check, so it never holds up a merge.
 
 Changes reach `main` through pull requests with Conventional Commit titles, and release-please turns them into releases. See [RELEASING.md](RELEASING.md).
 

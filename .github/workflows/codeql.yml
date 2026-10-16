@@ -1,8 +1,10 @@
 name: CodeQL
 
-# Changes reach main only through pull requests, so the PR scan covers each change
-# and the weekly scan keeps the results for main current.
+# PR results are compared against the latest scan of main, so main is scanned again after each merge.
 on:
+  push:
+    branches: [ main ]
+    paths: [ "Sources/**", "Makefile", ".github/workflows/**" ]
   pull_request:
     branches: [ main ]
     paths: [ "Sources/**", "Makefile", ".github/workflows/**" ]
@@ -37,10 +39,10 @@ jobs:
           category: "/language:actions"
 
   # CodeQL extracts AppKit and its SDK dependencies on every Swift scan, which takes about ten minutes.
-  # Release PRs only change the version string, so they skip it.
+  # Releases only change the version string, so Release PRs and their merges skip it.
   swift:
     name: Analyze (swift)
-    if: ${{ !startsWith(github.head_ref, 'release-please--') }}
+    if: "${{ !startsWith(github.head_ref, 'release-please--') && !startsWith(github.event.head_commit.message, 'chore(main): release') }}"
     runs-on: macos-latest
     timeout-minutes: 30
     permissions:
