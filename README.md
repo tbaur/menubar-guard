@@ -99,7 +99,7 @@ make agent    # build and lint the login agent file without installing it
 make clean
 ```
 
-CI runs the tests, the build, command-line and install-setting checks, the login agent lint, and `shellcheck` on every push and pull request to `main`. CodeQL scans the Swift code and the workflows once a week and whenever `Sources/`, the `Makefile` or a workflow changes. The Swift scan takes several minutes because CodeQL also extracts AppKit and the SDK modules that it depends on.
+CI runs the tests, the build, command-line and install-setting checks, the login agent lint, and `shellcheck` on every push and pull request to `main`. CodeQL scans the workflows whenever one changes. It scans the Swift code once a week, or when you start the CodeQL workflow by hand from the Actions tab. That scan takes about ten minutes because CodeQL also extracts AppKit and the SDK modules that it depends on.
 
 The pure logic lives in `Sources/Geometry.swift`, `State.swift`, `Options.swift` and `Describe.swift`, and `Tests/main.swift` tests it without XCTest. `Sources/Platform.swift` holds the macOS calls, and `Sources/main.swift` holds the monitor loop and the command line. `scripts/await-permission.sh` is the permission step of `make install`. [docs/how-it-works.md](docs/how-it-works.md) explains the design and each safeguard.
 

@@ -1,13 +1,12 @@
 name: CodeQL
 
-# The Swift scan takes minutes because CodeQL extracts AppKit and its SDK dependencies, so skip it when only docs change.
 on:
   push:
     branches: [ main ]
-    paths: [ "Sources/**", "Makefile", ".github/workflows/**" ]
+    paths: [ ".github/workflows/**" ]
   pull_request:
     branches: [ main ]
-    paths: [ "Sources/**", "Makefile", ".github/workflows/**" ]
+    paths: [ ".github/workflows/**" ]
   schedule:
     - cron: "23 7 * * 1"
   workflow_dispatch:
@@ -16,33 +15,41 @@ permissions:
   contents: read
 
 jobs:
-  analyze:
-    name: Analyze (${{ matrix.language }})
-    runs-on: ${{ matrix.runner }}
+  workflows:
+    name: Analyze (actions)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: github/codeql-action/init@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        with:
+          languages: actions
+          build-mode: none
+      - uses: github/codeql-action/analyze@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        with:
+          category: "/language:actions"
+
+  # CodeQL extracts AppKit and its SDK dependencies on every Swift scan, which takes about ten minutes.
+  swift:
+    name: Analyze (swift)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: macos-latest
     timeout-minutes: 30
     permissions:
       security-events: write
       contents: read
       actions: read
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # The automatic Swift build needs Package.swift or an Xcode project; this repo builds with make.
-          - language: swift
-            build-mode: manual
-            runner: macos-latest
-          - language: actions
-            build-mode: none
-            runner: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: github/codeql-action/init@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
         with:
-          languages: ${{ matrix.language }}
-          build-mode: ${{ matrix.build-mode }}
-      - if: matrix.build-mode == 'manual'
-        run: make build
+          languages: swift
+          build-mode: manual
+      - run: make build
       - uses: github/codeql-action/analyze@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
         with:
-          category: "/language:${{ matrix.language }}"
+          category: "/language:swift"
