@@ -126,7 +126,31 @@ do {
 
     check(fullScreenDisplays(windows: [], displays: [MAIN]).isEmpty, "no windows means no displays")
     check(bandsForFullScreen(windows: [fullOnMain], displays: [MAIN, ABOVE], margin: 8).isEmpty, "full screen under another display gets no band")
-    check(bandsForFullScreen(windows: [fullOnRight], displays: [MAIN, RIGHT], margin: 8) == [band(RIGHT, margin: 8)], "full screen on the right display bands that display")
+    check(bandsForFullScreen(windows: [fullOnMain], displays: [MAIN, RIGHT], margin: 8) == [band(MAIN, margin: 8)], "window at the top edge gets only the margin")
+    check(bandsForFullScreen(windows: [fullOnRight], displays: [MAIN, RIGHT], margin: 8) == [band(RIGHT, margin: 48)], "full screen on the right display bands that display")
+}
+
+// Full screen below a camera housing.
+do {
+    let notched = CGRect(x: 0, y: 0, width: 1512, height: 982)
+    let belowMenuBar = WindowInfo(frame: CGRect(x: 0, y: 38, width: 1512, height: 944), isFullScreen: true)
+    check(fullScreenTopInset(windows: [belowMenuBar], display: notched) == 38, "inset is the gap above the window")
+    let bands = bandsForFullScreen(windows: [belowMenuBar], displays: [notched], margin: 8)
+    check(bands == [band(notched, margin: 46)], "band covers the black menu bar area plus the margin")
+    check(clamp(CGPoint(x: 700, y: 20), bands: bands) == CGPoint(x: 700, y: 46), "pointer in the black area moves into the remote menu bar")
+    check(clamp(CGPoint(x: 700, y: 46), bands: bands) == nil, "remote menu bar below the band is reachable")
+
+    let higher = WindowInfo(frame: CGRect(x: 0, y: 10, width: 1512, height: 972), isFullScreen: true)
+    check(fullScreenTopInset(windows: [belowMenuBar, higher], display: notched) == 10, "the highest full-screen window sets the inset")
+
+    let farDown = WindowInfo(frame: CGRect(x: 0, y: 300, width: 1512, height: 600), isFullScreen: true)
+    check(fullScreenTopInset(windows: [farDown], display: notched) == MAX_TOP_INSET, "inset is capped")
+
+    let aboveTop = WindowInfo(frame: CGRect(x: 0, y: -5, width: 1512, height: 990), isFullScreen: true)
+    check(fullScreenTopInset(windows: [aboveTop], display: notched) == 0, "window above the top edge has no inset")
+
+    let windowed = WindowInfo(frame: CGRect(x: 0, y: 38, width: 1512, height: 944), isFullScreen: false)
+    check(fullScreenTopInset(windows: [windowed], display: notched) == nil, "window that is not full screen has no inset")
 }
 
 // Holding through unreadable moments.
@@ -226,7 +250,7 @@ do {
 do {
     check(describe(MAIN) == "1600x1000@0,0", "display format")
     check(describe(ABOVE) == "1920x1080@0,-1080", "negative origin format")
-    check(describe(TopBand(minX: 0, maxX: 1920, top: 0, margin: 8)) == "x=0..1920,y=0", "band format")
+    check(describe(TopBand(minX: 0, maxX: 1920, top: 0, margin: 8)) == "x=0..1920,y=0..8", "band format")
     check(describe(WindowInfo(frame: MAIN, isFullScreen: true)) == "1600x1000@0,0:full", "full-screen window format")
     check(describe(WindowInfo(frame: MAIN, isFullScreen: false)) == "1600x1000@0,0:window", "normal window format")
     check(describe(WindowInfo(frame: MAIN, isFullScreen: nil)) == "1600x1000@0,0:unknown", "unknown window format")
@@ -236,7 +260,7 @@ do {
     check(describe(margin: 7.5) == "7.5", "fractional margin keeps its decimal")
     check(describeState(bands: [], margin: 8) == "state=off", "off state format")
     check(describeState(bands: [band(MAIN, margin: 8), band(RIGHT, margin: 8)], margin: 8)
-        == "state=on bands=x=0..1600,y=0;x=1600..3520,y=0 margin=8", "on state format")
+        == "state=on bands=x=0..1600,y=0..8;x=1600..3520,y=0..8 margin=8", "on state format")
 }
 
 // Options.
