@@ -59,7 +59,7 @@ menubar-guard --version | --help
 
 | Option | Meaning |
 |---|---|
-| `--margin POINTS` | Height of the blocked strip, 1 to 40. Default 8. |
+| `--margin POINTS` | How far the blocked strip reaches into the full-screen window, 1 to 40. Default 8. On a Mac with a notch or Dynamic Island, the strip also covers the black menu bar area above the window. |
 | `--verbose` | Log every change in what the program sees, not only on and off. |
 | `--check` | Print what the program sees right now, including Screen Sharing's windows when it is not in front, then exit. |
 

@@ -8,9 +8,9 @@ func describe(_ rect: CGRect) -> String {
     "\(Int(rect.width))x\(Int(rect.height))@\(Int(rect.minX)),\(Int(rect.minY))"
 }
 
-/// `x=MIN..MAX,y=TOP`, in whole points.
+/// `x=MIN..MAX,y=TOP..BOTTOM`, in whole points.
 func describe(_ band: TopBand) -> String {
-    "x=\(Int(band.minX))..\(Int(band.maxX)),y=\(Int(band.top))"
+    "x=\(Int(band.minX))..\(Int(band.maxX)),y=\(Int(band.top))..\(Int(band.top + band.margin))"
 }
 
 /// A frame followed by `:full`, `:window`, or `:unknown` when the app does not

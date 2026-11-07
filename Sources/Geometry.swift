@@ -91,26 +91,47 @@ func fills(_ display: CGRect, with frame: CGRect) -> Bool {
         && abs(frame.maxY - display.maxY) <= FILL_TOLERANCE
 }
 
-/// The displays that hold a full-screen window.
+/// True when `window` is full screen on `display`.
 /// A window that reports full screen counts for the display under its center.
 /// A window that does not report it counts only when it fills a display exactly.
-func fullScreenDisplays(windows: [WindowInfo], displays: [CGRect]) -> [CGRect] {
-    displays.filter { display in
-        windows.contains { window in
-            switch window.isFullScreen {
-            case .some(true):
-                return display.contains(CGPoint(x: window.frame.midX, y: window.frame.midY))
-            case .some(false):
-                return false
-            case .none:
-                return fills(display, with: window.frame)
-            }
-        }
+private func isFullScreen(_ window: WindowInfo, on display: CGRect) -> Bool {
+    switch window.isFullScreen {
+    case .some(true):
+        return display.contains(CGPoint(x: window.frame.midX, y: window.frame.midY))
+    case .some(false):
+        return false
+    case .none:
+        return fills(display, with: window.frame)
     }
 }
 
-/// Bands for every display that holds a full-screen window.
+/// The displays that hold a full-screen window.
+func fullScreenDisplays(windows: [WindowInfo], displays: [CGRect]) -> [CGRect] {
+    displays.filter { display in
+        windows.contains { isFullScreen($0, on: display) }
+    }
+}
+
+/// How far below the display's top edge the full-screen window starts, or nil
+/// when no window is full screen there. On a Mac with a camera housing in the
+/// screen, macOS places full-screen windows below the menu bar area and leaves
+/// that area black. The pointer still opens this Mac's menu bar anywhere in it.
+func fullScreenTopInset(windows: [WindowInfo], display: CGRect) -> CGFloat? {
+    let insets = windows
+        .filter { isFullScreen($0, on: display) }
+        .map { min(max($0.frame.minY - display.minY, 0), MAX_TOP_INSET) }
+    return insets.min()
+}
+
+/// The largest gap above a full-screen window that counts as the menu bar area.
+/// Anything larger is a frame caught mid-animation.
+let MAX_TOP_INSET: CGFloat = 80
+
+/// Bands for every display that holds a full-screen window. Each band covers
+/// the gap above the window, if there is one, plus `margin` points of the window.
 func bandsForFullScreen(windows: [WindowInfo], displays: [CGRect], margin: CGFloat) -> [TopBand] {
-    fullScreenDisplays(windows: windows, displays: displays)
-        .flatMap { topBands(for: $0, displays: displays, margin: margin) }
+    displays.flatMap { display -> [TopBand] in
+        guard let inset = fullScreenTopInset(windows: windows, display: display) else { return [] }
+        return topBands(for: display, displays: displays, margin: inset + margin)
+    }
 }

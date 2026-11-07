@@ -36,9 +36,11 @@ The hold applies only to unreadable moments. If a read succeeds and shows no ful
 
 Event positions and Accessibility window frames use the same coordinates. The origin is the top left of the main display, and Y grows downward. `CGDisplayBounds` uses the same space. A display's top edge is therefore its smallest Y.
 
-Each full-screen display gets a strip `margin` points high along its top edge. The default margin is 8 points. In testing, 2 points still let this Mac's menu bar come down, and 8 points did not.
+Each full-screen display gets a strip along its top edge. The strip runs from the top edge down to the top of the full-screen window, then `margin` points further into the window. The default margin is 8 points. In testing, 2 points still let this Mac's menu bar come down, and 8 points did not.
 
-When an event lands in the strip, the tap moves it to `top + margin` and keeps its X. The remote Mac's menu bar is drawn inside the Screen Sharing window at the top of the display, so it is still under the pointer.
+On most displays the full-screen window starts at the top edge, so the strip is just the margin. On a Mac with a camera housing in the screen, such as a notch or Dynamic Island, macOS places full-screen windows below the menu bar area and leaves that area black. The pointer opens this Mac's menu bar anywhere in that black area, so the strip covers all of it. The gap is capped at 80 points, so a frame caught mid-animation cannot block a large part of the screen.
+
+When an event lands in the strip, the tap moves it to the bottom of the strip and keeps its X. The remote Mac's menu bar is drawn inside the Screen Sharing window at the top of the display, so it is still under the pointer.
 
 ### Which events are moved
 

@@ -11,7 +11,7 @@ Each line starts with a UTC timestamp. Problems are written as `error: …` line
 | Log line | Meaning |
 |---|---|
 | `started version=… pid=… margin=… session=…` | The program is running. The event tap exists and is off until it is needed. |
-| `state=on bands=x=0..1920,y=0 margin=8 front=screen-sharing windows=[…]` | The guard is on. It blocks the top strip of the listed x range on the display whose top edge is at that y. |
+| `state=on bands=x=0..1920,y=0..8 margin=8 front=screen-sharing windows=[…]` | The guard is on. It blocks the listed x range from the display's top edge down to the second y. On a Mac with a camera housing in the screen, the strip also covers the black menu bar area above the full-screen window, so it is taller than the margin. |
 | `state=off front=other` / `front=none` | Another app, or no app, came to the front. Other apps are never named in the log. |
 | `state=off front=screen-sharing windows=[…:window]` | Screen Sharing is in front, but no window is full screen. |
 | `state=off front=screen-sharing windows=unreadable` | Screen Sharing's windows could not be read 3 times in a row. |
