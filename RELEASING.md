@@ -34,13 +34,19 @@ To release, merge the code PRs, approve the Release PR's checks, then merge the 
 
 The Release PR is authored by `github-actions[bot]`, because `release.yml` passes `github.token` to release-please. GitHub creates the PR's checks but holds them until a user with write access approves them.
 
-**Open the Release PR's Checks tab and click "Approve and run" before merging.**
+**Approve the held runs before merging.** Either click "Approve and run" on the Release PR's Checks tab, or approve them from the CLI:
 
-- There is no CLI for this step.
+```bash
+sha=$(gh pr view <PR> --json headRefOid --jq .headRefOid)
+gh api "repos/tbaur/menubar-guard/actions/runs?head_sha=$sha" --jq '.workflow_runs[] | select(.conclusion=="action_required" or .status=="action_required") | .id'
+gh api -X POST repos/tbaur/menubar-guard/actions/runs/<RUN_ID>/approve
+```
+
+- Approve each run id that the list returns. A Release PR usually has two.
 - The approval does not carry over. You need it on every release, and again whenever release-please updates an open Release PR.
 - **If you merge without approving, the runs turn red.** They end as `failure` with zero jobs and no logs. That means nobody approved them, not that anything broke.
 
-GitHub added this approval step for [pull requests created by bots](https://github.blog/changelog/2026-06-11-bot-created-pull-requests-can-run-workflows-if-approved/). It applies to branches in the same repo, not only to forks, and there is no repository setting to turn it off. The only way around it is to author the Release PR as a different identity, which needs a GitHub App or a personal access token. Neither is set up here, and the click is cheaper.
+GitHub added this approval step for [pull requests created by bots](https://github.blog/changelog/2026-06-11-bot-created-pull-requests-can-run-workflows-if-approved/). It applies to branches in the same repo, not only to forks, and there is no repository setting to turn it off. The only way around it is to author the Release PR as a different identity, which needs a GitHub App or a personal access token. Neither is set up here, and approving each release is cheaper.
 
 ## Repository settings
 
